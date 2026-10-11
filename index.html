@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math Knight Quest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { min-height: 100%; }
+    body {
+      background: radial-gradient(ellipse at 50% 0%, #3b2f8f 0%, #1a1446 45%, #070719 100%) fixed;
+      color: #f1f5f9;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+    /* Lantai grid 3D di latar */
+    body::before {
+      content: '';
+      position: fixed; left: -60%; right: -60%; bottom: 0; height: 65vh;
+      background-image:
+        linear-gradient(rgba(129,140,248,.55) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(129,140,248,.55) 2px, transparent 2px);
+      background-size: 56px 56px;
+      transform: perspective(420px) rotateX(62deg);
+      transform-origin: bottom;
+      -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 90%);
+      mask-image: linear-gradient(to top, #000 10%, transparent 90%);
+      opacity: .45; pointer-events: none; z-index: 0;
+    }
+    #wrap { position: relative; z-index: 1; }
+
+    /* Tombol 3D */
+    .c-slate  { --c:#64748b; --c2:#475569; --d:#1e293b; }
+    .c-amber  { --c:#fcd34d; --c2:#f59e0b; --d:#b45309; color:#1c1917 !important; }
+    .c-green  { --c:#6ee7b7; --c2:#10b981; --d:#047857; color:#052e16 !important; }
+    .c-indigo { --c:#a5b4fc; --c2:#6366f1; --d:#3730a3; }
+    .c-rose   { --c:#fda4af; --c2:#f43f5e; --d:#9f1239; }
+    /* Tambahan warna untuk state benar/salah saat feedback */
+    .c-correct { --c:#34d399; --c2:#059669; --d:#064e3b; color:#fff !important; }
+    .c-wrong   { --c:#fb7185; --c2:#e11d48; --d:#881337; color:#fff !important; }
+    
+    .b3 {
+      background: linear-gradient(180deg, var(--c), var(--c2));
+      color: #fff; font-weight: 900;
+      border-radius: 16px;
+      box-shadow: 0 6px 0 var(--d), 0 12px 16px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.4), inset 0 -3px 0 rgba(0,0,0,.12);
+      transition: transform .08s, box-shadow .08s, filter .15s, background .3s;
+      text-shadow: 0 1px 0 rgba(0,0,0,.25);
+      margin-bottom: 6px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .c-amber.b3, .c-green.b3 { text-shadow: 0 1px 0 rgba(255,255,255,.35); }
+    .b3:hover:not(:disabled) { filter: brightness(1.1); }
+    .b3:active:not(:disabled) {
+      transform: translateY(5px);
+      box-shadow: 0 1px 0 var(--d), 0 3px 6px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.4);
+    }
+    .b3:disabled { cursor: not-allowed; opacity: 0.9; }
+
+    /* Panel 3D */
+    .p3 {
+      background: linear-gradient(160deg, rgba(79,70,229,.35), rgba(15,23,42,.85));
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 22px;
+      box-shadow: 0 8px 0 rgba(2,6,23,.85), 0 18px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18);
+      margin-bottom: 8px;
+    }
+    #app {
+      background: linear-gradient(160deg, rgba(30,27,75,.92), rgba(10,10,35,.96));
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 30px;
+      box-shadow: 0 12px 0 #05051a, 0 30px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.2);
+    }
+    .quest-script { font-family: 'Dancing Script', 'Brush Script MT', cursive; font-weight: 700; letter-spacing: 0; text-transform: none; text-shadow: 0 2px 0 rgba(0,0,0,.55), 0 4px 0 rgba(0,0,0,.4), 0 10px 14px rgba(0,0,0,.6); }
+    .title3d {
+      color: #fde68a; letter-spacing: .04em;
+    }
+    .num3d {
+      text-shadow: 0 1px 0 rgba(0,0,0,.5), 0 2px 0 rgba(0,0,0,.4), 0 3px 0 rgba(0,0,0,.3), 0 8px 10px rgba(0,0,0,.4);
+    }
+
+    /* Arena 3D */
+    .arena {
+      position: relative; height: 300px; perspective: 520px; overflow: hidden;
+      border-radius: 12px;
+      background: linear-gradient(#1e1b4b 0%, #4338ca 55%, #1e1b4b 56%, #0b0a24 100%);
+      box-shadow: inset 0 0 30px rgba(0,0,0,.6), 0 8px 0 rgba(2,6,23,.85), 0 18px 30px rgba(0,0,0,.5);
+      margin-bottom: 8px;
+    }
+    .floor {
+      position: absolute; left: -60%; right: -60%; bottom: -40px; height: 240px;
+      background-color: #14123d;
+      background-image:
+        linear-gradient(rgba(165,180,252,.6) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(165,180,252,.6) 2px, transparent 2px);
+      background-size: 44px 44px;
+      transform: rotateX(64deg); transform-origin: bottom;
+    }
+    /* Ukuran disesuaikan untuk gambar hero & monster yang ekstra besar */
+    .spr { position: absolute; bottom: 40px; width: 180px; display: flex; justify-content: center; }
+    .spr.h { left: 2%; }
+    .spr.m { right: 2%; }
+    .sh {
+      position: absolute; bottom: -15px; left: 50%; width: 130px; height: 26px; transform: translateX(-50%);
+      background: radial-gradient(ellipse, rgba(0,0,0,.7), transparent 70%);
+    }
+    .bob { animation: bob 1.6s ease-in-out infinite; }
+    .spr.m .bob { animation-delay: .5s; }
+    @keyframes bob { 50% { transform: translateY(-9px); } }
+    .fig {
+      font-size: 130px; line-height: 1; transition: transform .15s;
+      filter: drop-shadow(0 12px 5px rgba(0,0,0,.55)) drop-shadow(0 0 2px rgba(255,255,255,.5));
+      display: flex; align-items: center; justify-content: center;
+    }
+    .fig img { width: 180px; height: 180px; object-fit: contain; }
+    
+    /* Tombol Pilihan Hero (Slider) */
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+    .hero-pick-btn {
+      background: transparent; border: none; outline: none; cursor: pointer;
+      -webkit-tap-highlight-color: transparent; 
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.4s;
+      filter: grayscale(70%) drop-shadow(0 6px 8px rgba(0,0,0,0.5));
+      position: relative;
+      flex: 0 0 auto; 
+      width: 120px;   
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      scroll-snap-align: center; 
+    }
+    @media (min-width: 640px) {
+      .hero-pick-btn { width: 150px; }
+    }
+    .hero-pick-img {
+      width: 100px; height: 100px; object-fit: contain;
+      transition: transform 0.4s;
+    }
+    @media (min-width: 640px) {
+      .hero-pick-img { width: 130px; height: 130px; }
+    }
+    .hero-pick-btn:hover {
+      transform: scale(1.15); filter: grayscale(0%) drop-shadow(0 10px 15px rgba(0,0,0,0.6));
+    }
+    .hero-pick-btn.selected {
+      transform: scale(1.35); 
+      filter: grayscale(0%) drop-shadow(0 0 25px rgba(52, 211, 153, 0.9));
+      z-index: 10;
+    }
+    
+    /* Styling Nama Hero */
+    .hero-name {
+      margin-top: 8px; font-size: 15px; font-weight: 900; letter-spacing: 0.05em;
+      color: #94a3b8; text-transform: uppercase;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+      transition: color 0.3s;
+    }
+    .hero-pick-btn.selected .hero-name {
+      color: #fcd34d; 
+    }
+
+    .fig-h { --ry: 28deg; transform: perspective(300px) rotateY(var(--ry)); }
+    .fig-h.lunge { transform: perspective(300px) rotateY(var(--ry)) translateX(50px) scale(1.2); }
+    .fig-m { --ry: -28deg; transform: perspective(300px) rotateY(var(--ry)); }
+    .fig-m.lunge { transform: perspective(300px) rotateY(var(--ry)) translateX(-50px) scale(1.2); }
+    .fig.shake { animation: shk .3s ease-in-out; }
+    @keyframes shk {
+      0%,100% { transform: perspective(300px) rotateY(var(--ry)) translateX(0); }
+      25% { transform: perspective(300px) rotateY(var(--ry)) translateX(-9px); }
+      75% { transform: perspective(300px) rotateY(var(--ry)) translateX(9px); }
+    }
+    @keyframes float-up { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-50px) scale(1.4); } }
+    .dmg-float { animation: float-up .8s ease-out forwards; text-shadow: 0 3px 0 rgba(0,0,0,.6); }
+
+    /* HP bar 3D */
+    .hpbox { position: absolute; top: 10px; width: 40%; z-index: 5; font-size: 11px; font-weight: 900; }
+    .hpbox.h { left: 10px; } .hpbox.m { right: 10px; text-align: right; }
+    .hp-track {
+      height: 14px; border-radius: 99px; padding: 2px; background: rgba(0,0,0,.55);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,.7), 0 2px 0 rgba(255,255,255,.12);
+    }
+    .hp-fill {
+      height: 100%; border-radius: 99px; transition: width .3s;
+      box-shadow: inset 0 3px 0 rgba(255,255,255,.4), inset 0 -2px 0 rgba(0,0,0,.25);
+    }
+
+    /* Blok bar model 3D */
+    .blk {
+      display: flex; align-items: center; justify-content: center; font-weight: 900; color: #fff;
+      border-radius: 10px; transform-origin: left;
+      box-shadow: inset 0 4px 0 rgba(255,255,255,.35), inset 0 -5px 0 rgba(0,0,0,.28), 0 5px 0 rgba(0,0,0,.55), 0 10px 12px rgba(0,0,0,.4);
+      text-shadow: 0 2px 0 rgba(0,0,0,.35);
+      animation: grow-bar .5s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    @keyframes grow-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .blk-indigo { background: linear-gradient(180deg,#818cf8,#4f46e5); }
+    .blk-amber  { background: linear-gradient(180deg,#fcd34d,#f59e0b); color:#1c1917; text-shadow:none; }
+    .blk-rose   { background: linear-gradient(180deg,#fb7185,#e11d48); }
+    .blk-slate  { background: linear-gradient(180deg,#64748b,#334155); }
+    .blk-green  { background: linear-gradient(180deg,#34d399,#059669); }
+
+    .inp3 {
+      background: #0b0a24; border: 2px solid rgba(255,255,255,.12); border-radius: 14px; color: #fff;
+      font-weight: 900; text-align: center; padding: 10px 12px; width: 100%;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,.6);
+    }
+    .inp3:focus { outline: none; border-color: #fbbf24; }
+
+    .fact {
+      background: linear-gradient(180deg, #312e81, #1e1b4b);
+      border-radius: 14px; padding: 8px; text-align: center; cursor: pointer; user-select: none;
+      box-shadow: 0 5px 0 #0b0a24, 0 9px 12px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.18);
+      transition: transform .08s, box-shadow .08s; margin-bottom: 5px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fact:active { transform: translateY(4px); box-shadow: 0 1px 0 #0b0a24, inset 0 2px 0 rgba(255,255,255,.18); }
+    .fact .ans {
+      display: block; margin-top: 4px; border-radius: 10px; padding: 3px 0; font-weight: 900; font-size: 18px;
+      background: rgba(0,0,0,.4); box-shadow: inset 0 3px 6px rgba(0,0,0,.6);
+    }
+    /* ===== Duel: hero tegak di kiri atas tiap sisi pemain, serangan ke atas ===== */
+    .duel-half { position: relative; display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; padding: 24px 12px 8px; gap: 6px; background: #0f172a; }
+    .duel-hero-wrap { position: relative; width: clamp(88px, 16dvh, 132px); height: clamp(88px, 16dvh, 132px); flex: 0 0 auto; }
+    .duel-hero {
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      filter: drop-shadow(0 6px 4px rgba(0,0,0,.55)) drop-shadow(0 0 2px rgba(255,255,255,.5));
+    }
+    .duel-hero img { width: 100%; height: 100%; object-fit: contain; }
+    .duel-hero.atk-up { animation: atkUp .4s ease-out; }
+    .duel-hero.hit-shake { animation: hitShake .35s ease-in-out; }
+    @keyframes atkUp { 0%,100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-26px) scale(1.18); } }
+    @keyframes hitShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-9px); } 75% { transform: translateX(9px); } }
+    .duel-orb {
+      position: absolute; left: 50%; top: 10px; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%;
+      background: radial-gradient(circle, #fff 0%, #fde68a 40%, #f59e0b 100%);
+      box-shadow: 0 0 16px 6px rgba(251,191,36,.8); pointer-events: none; z-index: 40;
+      animation: shootUp .55s ease-in forwards;
+    }
+    @keyframes shootUp { 0% { transform: translateY(0) scale(.6); opacity: 1; } 100% { transform: translateY(calc(var(--dist, 300px) * -1)) scale(1.1); opacity: 0; } }
+    .solo-orb {
+      position: absolute; width: 26px; height: 26px; border-radius: 50%; pointer-events: none; z-index: 40;
+      background: radial-gradient(circle, #fff 0%, #fde68a 40%, #f59e0b 100%);
+      box-shadow: 0 0 16px 6px rgba(251,191,36,.8);
+      animation: shootX .5s ease-in forwards;
+    }
+    .solo-orb.enemy { background: radial-gradient(circle, #fff 0%, #fda4af 40%, #e11d48 100%); box-shadow: 0 0 16px 6px rgba(244,63,94,.8); }
+    @keyframes shootX { 0% { transform: translateX(0) scale(.6); opacity: 1; } 100% { transform: translateX(var(--dx, 200px)) scale(1.1); opacity: 0; } }
+    .duel-dmg { position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 26px; z-index: 45; }
+
+    .hero-info { position: absolute; z-index: 60; width: 210px; text-align: left; background: rgba(15,23,42,.97);
+      border: 1px solid rgba(255,255,255,.25); border-radius: 14px; padding: 8px 10px; color: #f1f5f9;
+      box-shadow: 0 6px 0 rgba(2,6,23,.85), 0 12px 20px rgba(0,0,0,.55); }
+    .duel-hero-wrap, #solo-hero-tap { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    /* Pop-up info hero */
+    .stat-track { height: 12px; border-radius: 99px; background: rgba(0,0,0,.55); box-shadow: inset 0 2px 4px rgba(0,0,0,.7); overflow: hidden; }
+    .stat-fill { height: 100%; border-radius: 99px; box-shadow: inset 0 3px 0 rgba(255,255,255,.4); }
+
+    .hidden { display: none !important; }
+    select.inp3 { text-align-last: center; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start p-3 sm:p-4">
+<div id="wrap" class="w-full max-w-xl flex flex-col items-center flex-1">
+
+  <div id="app" class="w-full overflow-hidden flex flex-col">
+
+    <!-- TAB -->
+    <div id="main-tabs" class="grid grid-cols-4 gap-1.5 p-2.5 sticky top-0 z-20" style="background:rgba(10,10,35,.85);backdrop-filter:blur(6px)">
+      <button id="tab-game" onclick="switchMainTab('game')" class="b3 c-amber py-2.5 text-xs">⚔️ Main</button>
+      <button id="tab-learn" onclick="switchMainTab('learn')" class="b3 c-slate py-2.5 text-xs">📊 Lat</button>
+      <button id="tab-tables" onclick="switchMainTab('tables')" class="b3 c-slate py-2.5 text-xs">✖️➗ Tabel</button>
+      <button id="tab-story" onclick="switchMainTab('story')" class="b3 c-slate py-2.5 text-xs">📖 Cerita</button>
+    </div>
+
+    <!-- GAME -->
+    <div id="view-game-mode" class="block flex-1">
+
+      <div id="screen-start" class="p-5 text-center space-y-4">
+        <div class="relative flex items-center justify-center" style="min-height:200px">
+          <img src="https://i.ibb.co.com/NnkzSkWH/40204.png" alt="" aria-hidden="true" class="absolute pointer-events-none select-none" style="left:50%;top:50%;transform:translate(-50%,-50%);height:200px;width:auto;max-width:100%;object-fit:contain;opacity:.45;z-index:0">
+          <h1 class="title3d relative leading-none" style="z-index:1;text-shadow:0 2px 0 rgba(0,0,0,.55), 0 4px 0 rgba(0,0,0,.4), 0 10px 14px rgba(0,0,0,.6)"><span class="block text-4xl sm:text-5xl font-black tracking-widest">MATH KNIGHT</span><span class="block quest-script text-5xl sm:text-6xl" style="color:#fff;margin-top:-0.45em;position:relative;z-index:1">Quest</span></h1>
+          
+        </div>
+
+        <div class="p3 p-3 overflow-hidden">
+          <h3 id="label-hero-p1" class="text-xs font-black text-amber-200 mb-1">PILIH KSATRIA KAMU (Geser):</h3>
+          <div id="hero-select-container" class="flex overflow-x-auto gap-2 pt-8 pb-10 px-[35%] snap-x snap-mandatory hide-scrollbar items-center"></div>
+        </div>
+
+        <!-- Tambahan: Kotak Pilih Hero Pemain 2 untuk Mode Duel -->
+        <div id="box-hero-p2" class="p3 p-3 overflow-hidden hidden">
+          <h3 class="text-xs font-black text-rose-300 mb-1">PILIH KSATRIA PEMAIN 2 (Geser):</h3>
+          <div id="hero-select-container-p2" class="flex overflow-x-auto gap-2 pt-8 pb-10 px-[35%] snap-x snap-mandatory hide-scrollbar items-center"></div>
+        </div>
+
+        <div class="p3 p-3">
+          <h3 class="text-xs font-black text-amber-200 mb-2">PILIH MODE BERMAIN:</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="setPlayMode('solo')" id="btn-mode-solo" class="play-mode-btn b3 c-amber py-2.5 text-lg">👤 SOLO</button>
+            <button onclick="setPlayMode('duel')" id="btn-mode-duel" class="play-mode-btn b3 c-slate py-2.5 text-lg">⚔️ DUEL</button>
+          </div>
+        </div>
+
+        <div class="p3 p-3">
+          <h3 class="text-xs font-black text-amber-200 mb-2">PILIH MODE OPERASI:</h3>
+          <div class="grid grid-cols-5 gap-2">
+            <button onclick="setMode('all')" id="btn-all" class="mode-btn b3 c-amber py-3 text-2xl">🎲</button>
+            <button onclick="setMode('+')" id="btn-add" class="mode-btn b3 c-slate py-3 text-2xl">➕</button>
+            <button onclick="setMode('-')" id="btn-sub" class="mode-btn b3 c-slate py-3 text-2xl">➖</button>
+            <button onclick="setMode('×')" id="btn-mul" class="mode-btn b3 c-slate py-3 text-2xl">✖️</button>
+            <button onclick="setMode('÷')" id="btn-div" class="mode-btn b3 c-slate py-3 text-2xl">➗</button>
+          </div>
+        </div>
+
+        <button onclick="startGame()" class="b3 c-green w-full text-3xl py-4">▶ MAIN</button>
+      </div>
+
+      <div id="screen-game" class="p-4 hidden space-y-3">
+        <div class="p3 flex justify-between items-center px-4 py-2.5">
+          <button onclick="showHomePopup()" class="b3 c-rose px-3 py-1.5 text-lg !mb-0" style="margin-bottom: 0;">🏠</button>
+          <div class="flex space-x-4">
+            <div class="text-xl font-black text-amber-300 num3d">⭐ <span id="ui-score">0</span></div>
+            <div class="text-xl font-black text-indigo-300 num3d">🔥 <span id="ui-combo">0x</span></div>
+          </div>
+        </div>
+
+        <div class="arena">
+          <div class="floor"></div>
+          <div class="hpbox h">
+            <div class="text-emerald-300">❤️</div>
+            <div class="hp-track"><div id="hero-hp" class="hp-fill" style="width:100%;background:linear-gradient(180deg,#6ee7b7,#10b981)"></div></div>
+          </div>
+          <div class="hpbox m">
+            <div class="text-rose-300"><span id="monster-name">Lv 1</span> 💀</div>
+            <div class="hp-track"><div id="monster-hp" class="hp-fill" style="width:100%;background:linear-gradient(180deg,#fda4af,#f43f5e)"></div></div>
+          </div>
+          <div id="floating-damage" class="absolute inset-0 pointer-events-none flex items-center justify-center font-black text-4xl z-10"></div>
+
+          <div id="solo-info" class="hero-info hidden" style="left:10px;top:48px" onclick="this.classList.add('hidden')"></div>
+          <div id="solo-hero-tap" class="spr h" onclick="toggleHeroInfo('solo-info', soloHero)"><div class="sh"></div><div class="bob"><div id="hero-sprite" class="fig fig-h"></div></div></div>
+          <div class="spr m"><div class="sh"></div><div class="bob"><div id="monster-sprite" class="fig fig-m"></div></div></div>
+        </div>
+
+        <div class="p3 text-center py-4">
+          <div id="question-text" class="num3d text-4xl sm:text-5xl font-black tracking-widest text-white">12 × 8 = ?</div>
+        </div>
+
+        <div id="options-container" class="grid grid-cols-2 gap-3"></div>
+      </div>
+
+      <!-- Tambahan: LAYAR KHUSUS MODE DUEL (SPLIT SCREEN) -->
+      <div id="screen-game-duel" class="hidden flex-col h-[100dvh] w-full fixed top-0 left-0 z-50 bg-[#070719]">
+        <!-- Sisi Pemain 2 (diputar 180°, isi sama persis dengan Pemain 1 sehingga hero ada di kiri atas menurut pemain 2) -->
+        <div id="duel-half-p2" class="duel-half rotate-180">
+           <div class="flex items-center gap-3">
+              <div class="duel-hero-wrap" onclick="toggleHeroInfo('duel-info-p2', duelHero.p2)">
+                 <div id="duel-spr-p2" class="duel-hero"></div>
+                 <div id="duel-dmg-p2" class="duel-dmg"></div>
+                 <div id="duel-info-p2" class="hero-info hidden" style="left:0;top:100%;margin-top:6px"></div>
+              </div>
+              <div class="flex-1 min-w-0">
+                 <div class="flex justify-between items-center">
+                    <span id="duel-name-p2" class="text-rose-400 font-black text-xs uppercase truncate">Pemain 2</span>
+                    <span class="text-indigo-300 font-black text-xs">🔥 <span id="duel-combo-p2">0</span>x</span>
+                 </div>
+                 <div class="w-full bg-black/60 h-5 rounded-full p-0.5 shadow-inner mt-1.5">
+                    <div id="duel-hp-p2" class="h-full rounded-full transition-all duration-300" style="width:100%; background:linear-gradient(180deg,#fda4af,#f43f5e)"></div>
+                 </div>
+              </div>
+           </div>
+           <div id="duel-q-p2" class="p3 text-3xl sm:text-5xl font-black text-center text-white num3d tracking-widest py-3 px-3" style="margin:auto 0">?</div>
+           <div id="duel-opts-p2" class="grid grid-cols-2 gap-2"></div>
+        </div>
+
+        <!-- Bar tengah: tombol lobi -->
+        <div class="h-[3px] shrink-0 relative bg-indigo-400 z-[35]">
+           <button onclick="showHomePopup()" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 b3 c-slate px-4 py-1 text-xl !mb-0" style="margin-bottom:0">🏠</button>
+        </div>
+
+        <!-- Sisi Pemain 1 -->
+        <div id="duel-half-p1" class="duel-half">
+           <div class="flex items-center gap-3">
+              <div class="duel-hero-wrap" onclick="toggleHeroInfo('duel-info-p1', duelHero.p1)">
+                 <div id="duel-spr-p1" class="duel-hero"></div>
+                 <div id="duel-dmg-p1" class="duel-dmg"></div>
+                 <div id="duel-info-p1" class="hero-info hidden" style="left:0;top:100%;margin-top:6px"></div>
+              </div>
+              <div class="flex-1 min-w-0">
+                 <div class="flex justify-between items-center">
+                    <span id="duel-name-p1" class="text-blue-400 font-black text-xs uppercase truncate">Pemain 1</span>
+                    <span class="text-indigo-300 font-black text-xs">🔥 <span id="duel-combo-p1">0</span>x</span>
+                 </div>
+                 <div class="w-full bg-black/60 h-5 rounded-full p-0.5 shadow-inner mt-1.5">
+                    <div id="duel-hp-p1" class="h-full rounded-full transition-all duration-300" style="width:100%; background:linear-gradient(180deg,#6ee7b7,#10b981)"></div>
+                 </div>
+              </div>
+           </div>
+           <div id="duel-q-p1" class="p3 text-3xl sm:text-5xl font-black text-center text-white num3d tracking-widest py-3 px-3" style="margin:auto 0">?</div>
+           <div id="duel-opts-p1" class="grid grid-cols-2 gap-2"></div>
+        </div>
+      </div>
+
+      <div id="screen-result" class="p-5 text-center space-y-5 hidden">
+        <div>
+          <div id="result-icon" class="text-7xl inline-block" style="filter:drop-shadow(0 14px 6px rgba(0,0,0,.5))">🏆</div>
+          <h2 id="result-title" class="title3d text-3xl font-black">SELESAI!</h2>
+        </div>
+        <div class="p3 p-4 grid grid-cols-2 gap-4">
+          <div><div class="text-2xl">⭐</div><span id="final-score" class="num3d text-3xl font-black text-amber-300">0</span></div>
+          <div><div class="text-2xl">👾</div><span id="final-kills" class="num3d text-3xl font-black text-indigo-300">0</span></div>
+        </div>
+        <button onclick="showStartScreen()" class="b3 c-amber w-full text-3xl py-3.5">🔄</button>
+      </div>
+    </div>
+
+    <!-- CERITA -->
+    <div id="view-story-mode" class="hidden p-4 space-y-3 flex-1">
+      <div class="p3 p-4 text-center space-y-1">
+        <div class="text-5xl">💎</div>
+        <h2 class="title3d text-2xl font-black leading-tight">ASAL USUL<br>KSATRIA MATEMATIKA</h2>
+      </div>
+
+      <div class="p3 p-4 space-y-3 text-sm font-semibold text-indigo-100 leading-relaxed text-left">
+        <p>Di jantung <b class="text-amber-300">Negeri Angka</b> tersimpan <b class="text-amber-300">Sumber Kristal Infinity</b>, cahaya ajaib yang membuat setiap angka hidup dan berhitung dengan benar. Berkat kristal itu, penjumlahan, pengurangan, perkalian, dan pembagian selalu berjalan seimbang.</p>
+        <p>Suatu hari, <b class="text-rose-300">Pasukan Bayangan</b> menyerbu negeri itu. Mereka ingin mencuri Sumber Kristal Infinity untuk mengacaukan semua hitungan di dunia.</p>
+        <p>Saat pertempuran memuncak, Sumber Kristal Infinity bergetar hebat dan memancarkan serpihan cahaya ke sepuluh penjuru. Serpihan itu memilih <b class="text-amber-300">sepuluh anak pemberani</b> yang cerdas, teliti, dan pantang menyerah. Setiap ksatria menerima kekuatan yang berbeda dari serpihan kristal untuk menaklukkan kekuatan musuh.</p>
+        <p>Sejak saat itu, mereka dikenal sebagai <b class="text-amber-300">Ksatria Matematika</b>, penjaga Negeri Angka. Setiap jawaban yang benar membuat serangan mereka semakin kuat. Ayo bantu para ksatria menjaga Sumber Kristal Infinity!</p>
+      </div>
+
+      <div class="p3 p-4">
+        <h3 class="text-xs font-black text-amber-200 mb-3 text-center tracking-widest">10 KSATRIA TERPILIH</h3>
+        <div id="story-heroes" class="grid grid-cols-2 gap-3"></div>
+      </div>
+    </div>
+
+    <!-- LAB BAR MODEL -->
+    <div id="view-learn-mode" class="hidden p-4 space-y-3 flex-1">
+      <div class="grid grid-cols-4 gap-2">
+        <button onclick="setLearnTopic('add')" id="learn-btn-add" class="learn-topic-btn b3 c-indigo py-3 text-2xl">➕</button>
+        <button onclick="setLearnTopic('sub')" id="learn-btn-sub" class="learn-topic-btn b3 c-slate py-3 text-2xl">➖</button>
+        <button onclick="setLearnTopic('mul')" id="learn-btn-mul" class="learn-topic-btn b3 c-slate py-3 text-2xl">✖️</button>
+        <button onclick="setLearnTopic('div')" id="learn-btn-div" class="learn-topic-btn b3 c-slate py-3 text-2xl">➗</button>
+      </div>
+
+      <div class="p3 p-4 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label id="lbl-val1" class="text-xs font-black text-slate-300 block mb-1 text-center">🟦 A</label>
+            <input type="number" id="input-val1" value="35" min="1" max="100" onchange="renderBarModel()" oninput="renderBarModel()" class="inp3">
+          </div>
+          <div>
+            <label id="lbl-val2" class="text-xs font-black text-slate-300 block mb-1 text-center">🟧 B</label>
+            <input type="number" id="input-val2" value="25" min="1" max="100" onchange="renderBarModel()" oninput="renderBarModel()" class="inp3">
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="loadLearnPreset(1)" class="b3 c-slate py-1.5 text-sm">📝 1</button>
+          <button onclick="loadLearnPreset(2)" class="b3 c-slate py-1.5 text-sm">📝 2</button>
+          <button onclick="loadLearnPreset(3)" class="b3 c-slate py-1.5 text-sm">📝 3</button>
+        </div>
+      </div>
+
+      <div class="p3 p-4 space-y-4 min-h-[170px]">
+        <div class="text-center">
+          <span id="equation-preview" class="num3d text-3xl font-black text-amber-300">35 + 25 = 60</span>
+        </div>
+        <div id="bar-model-canvas" class="space-y-4 py-2"></div>
+      </div>
+
+      <div class="p3 p-4 space-y-3">
+        <div id="practice-question" class="num3d text-2xl font-black text-center text-white">?</div>
+        <div class="flex gap-2 items-start">
+          <input type="number" id="practice-answer" placeholder="?" class="inp3 flex-1 text-xl">
+          <button onclick="checkPracticeAnswer()" class="b3 c-green px-6 py-3 text-xl">✔</button>
+        </div>
+        <div id="practice-feedback" class="text-center text-lg font-black hidden"></div>
+      </div>
+    </div>
+
+    <!-- TABEL -->
+    <div id="view-tables-mode" class="hidden p-4 space-y-3 flex-1">
+      <div class="grid grid-cols-2 gap-2">
+        <button id="subtab-view-table" onclick="switchTableSubTab('hafalan')" class="b3 c-indigo py-2.5 text-lg">📖</button>
+        <button id="subtab-sim-table" onclick="switchTableSubTab('simulasi')" class="b3 c-slate py-2.5 text-lg">⚡</button>
+      </div>
+
+      <!-- HAFALAN -->
+      <div id="table-sub-hafalan" class="space-y-3">
+        <div class="p3 p-4 space-y-3">
+          <div class="grid grid-cols-3 gap-2">
+            <button id="tbl-op-mul" onclick="setTableOp('×')" class="b3 c-indigo py-2.5 text-xl">✖️</button>
+            <button id="tbl-op-div" onclick="setTableOp('÷')" class="b3 c-slate py-2.5 text-xl">➗</button>
+            <button id="toggle-hide-btn" onclick="toggleHideAnswers()" class="b3 c-slate py-2.5 text-xl">🙈</button>
+          </div>
+          <div id="num-buttons-container" class="grid grid-cols-6 gap-2"></div>
+        </div>
+
+        <div class="p3 p-4 space-y-3">
+          <h3 id="table-header-title" class="num3d text-2xl font-black text-amber-300 text-center">7 ✖️</h3>
+          <div id="table-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[320px] overflow-y-auto p-1"></div>
+        </div>
+      </div>
+
+      <!-- SIMULASI -->
+      <div id="table-sub-simulasi" class="hidden space-y-3">
+        <div id="sim-setup-card" class="p3 p-4 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <select id="sim-select-op" class="inp3 text-lg">
+              <option value="×">✖️</option>
+              <option value="÷">➗</option>
+              <option value="all">✖️➗</option>
+            </select>
+            <select id="sim-select-num" class="inp3 text-lg">
+              <option value="0">🎲 1–12</option>
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+              <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+              <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+              <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="setSimQuestionCount(5)" id="btn-count-5" class="sim-count-btn b3 c-slate py-2.5 text-lg">5</button>
+            <button onclick="setSimQuestionCount(10)" id="btn-count-10" class="sim-count-btn b3 c-green py-2.5 text-lg">10</button>
+            <button onclick="setSimQuestionCount(20)" id="btn-count-20" class="sim-count-btn b3 c-slate py-2.5 text-lg">20</button>
+          </div>
+          <button onclick="startTableSimulation()" class="b3 c-green w-full text-2xl py-3.5">🚀</button>
+        </div>
+
+        <div id="sim-active-card" class="hidden space-y-3">
+          <div class="p3 flex justify-between items-center px-4 py-2.5 text-lg font-black num3d">
+            <span class="text-amber-300">📋 <span id="sim-progress-text">1 / 10</span></span>
+            <span class="text-emerald-300">🎯 <span id="sim-accuracy-text">100%</span></span>
+            <span class="text-indigo-300">🔥 <span id="sim-combo-text">0x</span></span>
+          </div>
+          <div class="p3 text-center py-6">
+            <div id="sim-flashcard-question" class="num3d text-4xl sm:text-5xl font-black text-white tracking-wider">7 × 8 = ?</div>
+          </div>
+          <div id="sim-options-grid" class="grid grid-cols-2 gap-3"></div>
+        </div>
+
+        <div id="sim-result-card" class="hidden p3 p-5 text-center space-y-4">
+          <div id="sim-result-stars" class="text-5xl" style="filter:drop-shadow(0 8px 4px rgba(0,0,0,.5))">⭐⭐⭐</div>
+          <h3 id="sim-result-title" class="title3d text-2xl font-black">SEMPURNA!</h3>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div><div class="text-xl">✅</div><span id="sim-final-correct" class="num3d text-2xl font-black text-emerald-300">10</span></div>
+            <div><div class="text-xl">❌</div><span id="sim-final-wrong" class="num3d text-2xl font-black text-rose-300">0</span></div>
+            <div><div class="text-xl">🎯</div><span id="sim-final-accuracy" class="num3d text-2xl font-black text-amber-300">100%</span></div>
+          </div>
+          <button onclick="resetSimSetup()" class="b3 c-amber w-full text-2xl py-3">🔄</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP KONFIRMASI HERO -->
+  <div id="hero-modal" class="fixed inset-0 z-[60] flex hidden opacity-0 transition-opacity duration-300 overflow-y-auto px-4 pb-6" style="padding-top:calc(min(288px,78vw) * 0.55 - 4px)">
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm" onclick="closeHeroModal()"></div>
+    <div id="hero-modal-content" class="relative p3 p-5 text-center space-y-3 max-w-sm w-full transform scale-90 transition-transform duration-300" style="margin:auto">
+      <img id="hm-img" src="" alt="" class="mx-auto object-contain relative z-10 pointer-events-none" style="width:min(288px,78vw);height:min(288px,78vw);max-width:none;margin-top:calc(min(288px,78vw) * -0.55);margin-bottom:calc(min(288px,78vw) * -0.16);filter:drop-shadow(0 0 18px rgba(52,211,153,.8)) drop-shadow(0 10px 8px rgba(0,0,0,.5))">
+      <div id="hm-player" class="text-xs font-black tracking-widest text-rose-300 empty:hidden" style="margin-top:0"></div>
+      <h3 id="hm-name" class="title3d text-3xl font-black uppercase" style="margin-top:0.25rem"></h3>
+      <p id="hm-story" class="text-indigo-100 text-sm font-semibold leading-relaxed"></p>
+      <div class="space-y-2 text-left">
+        <div class="flex items-center gap-2">
+          <span class="w-14 text-xs font-black text-rose-300">⚔️ ATK</span>
+          <div class="stat-track flex-1"><div id="hm-atk-bar" class="stat-fill" style="background:linear-gradient(180deg,#fda4af,#f43f5e)"></div></div>
+          <span id="hm-atk-val" class="w-6 text-right text-sm font-black text-white"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-14 text-xs font-black text-sky-300">🛡️ DEF</span>
+          <div class="stat-track flex-1"><div id="hm-def-bar" class="stat-fill" style="background:linear-gradient(180deg,#7dd3fc,#0ea5e9)"></div></div>
+          <span id="hm-def-val" class="w-6 text-right text-sm font-black text-white"></span>
+        </div>
+      </div>
+      <div class="rounded-xl p-3 text-left" style="background:rgba(0,0,0,.4)">
+        <div class="text-xs font-black text-amber-300">✨ SKILL: <span id="hm-skill-name"></span></div>
+        <div id="hm-skill-desc" class="text-xs font-semibold text-slate-200 mt-1 leading-snug"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 pt-1">
+        <button onclick="closeHeroModal()" class="b3 c-slate py-2 text-lg !mb-0" style="margin-bottom:0">Batal</button>
+        <button onclick="confirmHeroPick()" class="b3 c-green py-2 text-lg !mb-0" style="margin-bottom:0">✔ Pilih</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP KONFIRMASI KEMBALI KE LOBI -->
+  <div id="home-modal" class="fixed inset-0 z-[70] flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeHomePopup()"></div>
+    <div id="home-modal-content" class="relative p3 p-6 text-center space-y-4 max-w-xs w-11/12 transform scale-90 transition-transform duration-300">
+      <div class="text-5xl mb-2">🏠</div>
+      <h3 class="text-2xl font-black text-amber-300">Kembali ke Lobi?</h3>
+      <p class="text-indigo-200 text-sm font-bold">Permainan yang sedang berjalan akan dihentikan.</p>
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <button onclick="closeHomePopup()" class="b3 c-slate py-2 text-lg !mb-0" style="margin-bottom: 0;">Batal</button>
+        <button onclick="confirmGoHome()" class="b3 c-rose py-2 text-lg !mb-0" style="margin-bottom: 0;">Ya</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="mt-auto pt-6 mb-2 w-full text-center text-sm font-black tracking-widest text-amber-200">
+    Developer By Ifan Shovi, S.Pd
+  </div>
+</div>
+
+<script>
+  // ===== Audio =====
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx;
+  function playSound(type) {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const t = audioCtx.currentTime;
+    if (type === 'hit') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, t);
+      osc.frequency.exponentialRampToValueAtTime(110, t + 0.15);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+      osc.start(); osc.stop(t + 0.15);
+    } else if (type === 'wrong') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, t);
+      osc.frequency.setValueAtTime(110, t + 0.1);
+      gain.gain.setValueAtTime(0.4, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+      osc.start(); osc.stop(t + 0.3);
+    } else if (type === 'win') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, t);
+      osc.frequency.setValueAtTime(659.25, t + 0.1);
+      osc.frequency.setValueAtTime(783.99, t + 0.2);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+      osc.start(); osc.stop(t + 0.4);
+    } else if (type === 'pop') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, t);
+      osc.frequency.exponentialRampToValueAtTime(900, t + 0.08);
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+      osc.start(); osc.stop(t + 0.08);
+    }
+  }
+
+  // Helper warna tombol
+  function paint(btns, active, color) {
+    btns.forEach(b => { b.className = b.className.replace(/\bc-\w+\b/g, '').trim() + ' c-slate'; });
+    active.className = active.className.replace(/\bc-\w+\b/g, '').trim() + ' ' + color;
+  }
+
+  // ===== Tab utama =====
+  function switchMainTab(tab) {
+    const views = { game: 'view-game-mode', learn: 'view-learn-mode', tables: 'view-tables-mode', story: 'view-story-mode' };
+    Object.values(views).forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById(views[tab]).classList.remove('hidden');
+    const tabs = ['tab-game', 'tab-learn', 'tab-tables', 'tab-story'].map(id => document.getElementById(id));
+    const colors = { game: 'c-amber', learn: 'c-indigo', tables: 'c-green', story: 'c-rose' };
+    paint(tabs, document.getElementById('tab-' + tab), colors[tab]);
+    if (tab === 'learn') { renderBarModel(); generatePracticeQuestion(); }
+    if (tab === 'tables') { initTablesModule(); }
+    if (tab === 'story') { renderStoryHeroes(); }
+  }
+
+  // Daftar 10 ksatria di halaman Cerita (diambil dari data HEROES)
+  function renderStoryHeroes() {
+    const c = document.getElementById('story-heroes');
+    if (!c || c.childElementCount) return;
+    HEROES.forEach((h, i) => {
+      const d = document.createElement('div');
+      d.className = 'fact';
+      d.style.cursor = 'default';
+      d.style.padding = '10px 8px';
+      d.innerHTML = `<img src="${heroesList[i]}" alt="${h.name}" style="width:84px;height:84px;object-fit:contain;margin:0 auto;filter:drop-shadow(0 6px 4px rgba(0,0,0,.5))">
+        <div class="font-black text-amber-300 text-sm uppercase mt-1">${h.name}</div>
+        <div class="font-black text-[11px] text-slate-200">⚔️ ${h.atk} &nbsp; 🛡️ ${h.def}</div>
+        <div class="font-black text-[11px] text-emerald-300 mt-1">✨ ${h.skill}</div>`;
+      c.appendChild(d);
+    });
+  }
+
+  // ===== Battle =====
+  let selectedMode = 'all';
+  let selectedPlayMode = 'solo';
+  let score = 0, combo = 0, monsterKills = 0, heroHp = 100, monsterHp = 100;
+  let currentQuestion = null;
+  
+  const heroesList = [
+    'https://i.ibb.co.com/Q3Qjrhwk/39859-removebg-preview.png',
+    'https://i.ibb.co.com/tMrVhfxT/39858-removebg-preview.png',
+    'https://i.ibb.co.com/P2hR8jD/39856-removebg-preview.png',
+    'https://i.ibb.co.com/qFX65vLP/39855-removebg-preview.png',
+    'https://i.ibb.co.com/kswWy3pk/39854-removebg-preview.png',
+    'https://i.ibb.co.com/Ndh7JBVF/39853-removebg-preview.png',
+    'https://i.ibb.co.com/CpppRnF2/39852-removebg-preview.png',
+    'https://i.ibb.co.com/QFtxjMTw/39791-removebg-preview.png',
+    'https://i.ibb.co.com/Tx0FwZxh/39790-removebg-preview.png',
+    'https://i.ibb.co.com/W4Z13RY6/39789-removebg-preview.png'
+  ];
+  // Data hero: cerita singkat, ATK (1-10), DEF (1-10), dan skill unik (pasif)
+  const HEROES = [
+    { name: 'Zeta',   atk: 7, def: 5, skill: 'Petir Beruntun',   desc: 'Setiap jawaban benar ke-3 berturut-turut, serangan menjadi 2x lipat.',
+      story: 'Zeta tumbuh di desa yang sering diguyur badai. Ia belajar menangkap kilat dengan hitungan yang tepat, dan kini menjaga negeri angka.' },
+    { name: 'Bimo',   atk: 5, def: 9, skill: 'Perisai Baja',     desc: 'Kesalahan pertama di setiap pertarungan tidak menyebabkan kerusakan sama sekali.',
+      story: 'Bimo adalah penjaga gerbang Kerajaan Angka. Sabar dan teguh, ia percaya pertahanan yang kuat lahir dari ketelitian.' },
+    { name: 'Zia',    atk: 9, def: 4, skill: 'Tebasan Kritis',   desc: '25% peluang serangan kritis dengan kerusakan 2x lipat.',
+      story: 'Zia berani dan gesit. Ia berlatih setiap pagi agar tebasannya secepat ia menjawab soal.' },
+    { name: 'Sena',   atk: 5, def: 6, skill: 'Cahaya Penyembuh', desc: 'Setiap jawaban benar memulihkan 5 HP.',
+      story: 'Sena belajar ilmu penyembuhan dari tabib hutan. Baginya, setiap jawaban benar adalah obat yang menguatkan.' },
+    { name: 'Astri',  atk: 6, def: 6, skill: 'Arus Tenang',      desc: 'Setiap jawaban benar ke-4 berturut-turut memulihkan 15 HP.',
+      story: 'Astri menjaga Negeri Angka dari udara. Ia terbang tenang di atas awan, mengawasi seluruh negeri, dan selalu tahu kapan harus menyerang dan kapan memulihkan tenaga.' },
+    { name: 'Agni',   atk: 8, def: 4, skill: 'Murka Api',        desc: 'Bonus kerusakan dari combo menjadi dua kali lebih besar.',
+      story: 'Agni punya semangat yang menyala-nyala. Semakin banyak ia menjawab benar, semakin besar api di dadanya.' },
+    { name: 'Bayu',   atk: 6, def: 5, skill: 'Angin Lincah',     desc: '20% peluang menghindar sehingga tidak menerima kerusakan saat salah.',
+      story: 'Bayu selincah angin pegunungan. Tak ada yang bisa menangkapnya ketika ia sudah mulai berlari.' },
+    { name: 'Rimba',  atk: 4, def: 8, skill: 'Akar Pelindung',   desc: 'Kerusakan saat salah berkurang setengah dan memulihkan 3 HP tiap jawaban benar.',
+      story: 'Rimba dibesarkan oleh hutan tua. Seperti akar pohon, ia kokoh dan tidak mudah roboh.' },
+    { name: 'Surya',  atk: 7, def: 6, skill: 'Serangan Fajar',   desc: 'Serangan pertama yang benar di setiap pertarungan berkekuatan 2,5x lipat.',
+      story: 'Surya selalu bangun sebelum matahari terbit. Serangan pertamanya bersinar seperti fajar yang menyambut hari.' },
+    { name: 'Candra', atk: 7, def: 5, skill: 'Cahaya Bulan',     desc: 'Menyerap 30% dari kerusakan yang diberikan menjadi HP.',
+      story: 'Candra berjaga saat malam. Cahaya bulan memberinya tenaga setiap kali ia berhasil menaklukkan soal.' }
+  ];
+  const heroNames = HEROES.map(h => h.name);
+  let selectedHero = heroesList[0];
+  let selectedHeroP2 = heroesList[1];
+
+  // Pengali dari statistik: ATK/DEF 5 = normal
+  const atkMult = i => 0.7 + HEROES[i].atk * 0.06;
+  const defMult = i => 1.3 - HEROES[i].def * 0.06;
+
+  // Hitung serangan saat jawaban benar. st = status skill per pertarungan {firstUsed}
+  function calcAttack(i, combo, st, base, perCombo, defenderIdx) {
+    const id = HEROES[i].name;
+    let dmg = base + combo * perCombo * (id === 'Agni' ? 2 : 1);
+    dmg *= atkMult(i);
+    const tags = [];
+    if (id === 'Zeta' && combo > 0 && combo % 3 === 0) { dmg *= 2; tags.push('⚡ Petir Beruntun!'); }
+    if (id === 'Zia' && Math.random() < 0.25) { dmg *= 2; tags.push('💥 Kritis!'); }
+    if (id === 'Surya' && !st.firstUsed) { dmg *= 2.5; tags.push('🌅 Serangan Fajar!'); }
+    st.firstUsed = true;
+    if (id === 'Agni' && combo > 1) tags.push('🔥 Murka Api!');
+    if (defenderIdx !== null && defenderIdx !== undefined) dmg *= defMult(defenderIdx);
+    dmg = Math.max(1, Math.round(dmg));
+    let heal = 0;
+    if (id === 'Sena') heal += 5;
+    if (id === 'Rimba') heal += 3;
+    if (id === 'Astri' && combo > 0 && combo % 4 === 0) { heal += 15; tags.push('🌬️ Arus Tenang!'); }
+    if (id === 'Candra') heal += Math.round(dmg * 0.3);
+    return { dmg, heal, tags };
+  }
+
+  // Hitung kerusakan diri sendiri saat jawaban salah
+  function calcWrong(i, st, base) {
+    const id = HEROES[i].name;
+    if (id === 'Bimo' && !st.shieldUsed) { st.shieldUsed = true; return { dmg: 0, tag: '🛡️ Perisai Baja!' }; }
+    if (id === 'Bayu' && Math.random() < 0.2) return { dmg: 0, tag: '🍃 Menghindar!' };
+    let dmg = base * defMult(i);
+    if (id === 'Rimba') dmg *= 0.5;
+    return { dmg: Math.round(dmg), tag: id === 'Rimba' ? '🌿 Akar Pelindung!' : '' };
+  }
+
+  // ===== Pop-up konfirmasi hero =====
+  let pendingHero = null; // { index, player }
+  function openHeroModal(index, player) {
+    playSound('pop');
+    pendingHero = { index, player };
+    const h = HEROES[index];
+    document.getElementById('hm-player').innerText = document.getElementById('box-hero-p2').classList.contains('hidden')
+      ? '' : (player === 'p1' ? 'PEMAIN 1' : 'PEMAIN 2');
+    document.getElementById('hm-img').src = heroesList[index];
+    document.getElementById('hm-name').innerText = h.name;
+    document.getElementById('hm-story').innerText = h.story;
+    document.getElementById('hm-atk-bar').style.width = (h.atk * 10) + '%';
+    document.getElementById('hm-def-bar').style.width = (h.def * 10) + '%';
+    document.getElementById('hm-atk-val').innerText = h.atk;
+    document.getElementById('hm-def-val').innerText = h.def;
+    document.getElementById('hm-skill-name').innerText = h.skill;
+    document.getElementById('hm-skill-desc').innerText = h.desc;
+    const modal = document.getElementById('hero-modal');
+    const content = document.getElementById('hero-modal-content');
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      modal.classList.remove('opacity-0');
+      content.classList.remove('scale-90');
+      content.classList.add('scale-100');
+    });
+  }
+  function closeHeroModal() {
+    const modal = document.getElementById('hero-modal');
+    const content = document.getElementById('hero-modal-content');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-90');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+    pendingHero = null;
+  }
+  function confirmHeroPick() {
+    if (!pendingHero) return;
+    const { index, player } = pendingHero;
+    playSound('win');
+    const btnId = player === 'p1' ? `hero-${index}` : `hero-p2-${index}`;
+    selectHero(heroesList[index], btnId, player);
+    closeHeroModal();
+  }
+  const heroIdx = url => heroesList.indexOf(url);
+  
+  // Daftar Link Musuh
+  const monstersList = [
+    'https://i.ibb.co.com/5h026xGv/39864-removebg-preview.png',
+    'https://i.ibb.co.com/hxJVNtDH/39863-removebg-preview.png',
+    'https://i.ibb.co.com/TM0PcrGk/39862-removebg-preview.png',
+    'https://i.ibb.co.com/ShcbT84/39861-removebg-preview.png',
+    'https://i.ibb.co.com/3Ys3QzZ4/39860-removebg-preview.png'
+  ];
+  
+  let isProcessingAnswer = false; 
+
+  function renderHeroSelection() {
+    // Render P1
+    const container = document.getElementById('hero-select-container');
+    if (!container) return;
+    container.innerHTML = '';
+    heroesList.forEach((h, i) => {
+      const btn = document.createElement('button');
+      btn.className = `hero-pick-btn ${selectedHero === h ? 'selected' : ''}`;
+      btn.id = `hero-${i}`;
+      btn.innerHTML = `
+        <img src="${h}" class="hero-pick-img" alt="${heroNames[i]}">
+        <span class="hero-name">${heroNames[i]}</span>
+      `;
+      btn.onclick = () => openHeroModal(i, 'p1');
+      container.appendChild(btn);
+    });
+
+    // Render P2
+    const containerP2 = document.getElementById('hero-select-container-p2');
+    if (!containerP2) return;
+    containerP2.innerHTML = '';
+    heroesList.forEach((h, i) => {
+      const btn = document.createElement('button');
+      btn.className = `hero-pick-btn ${selectedHeroP2 === h ? 'selected' : ''}`;
+      btn.id = `hero-p2-${i}`;
+      btn.innerHTML = `
+        <img src="${h}" class="hero-pick-img" alt="${heroNames[i]}">
+        <span class="hero-name">${heroNames[i]}</span>
+      `;
+      btn.onclick = () => openHeroModal(i, 'p2');
+      containerP2.appendChild(btn);
+    });
+  }
+
+  function selectHero(hero, btnId, player) {
+    if (player === 'p1') {
+        selectedHero = hero;
+        const btns = Array.from(document.querySelectorAll('#hero-select-container .hero-pick-btn'));
+        btns.forEach(b => b.classList.remove('selected'));
+        const selectedBtn = document.getElementById(btnId);
+        selectedBtn.classList.add('selected');
+        selectedBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    } else {
+        selectedHeroP2 = hero;
+        const btns = Array.from(document.querySelectorAll('#hero-select-container-p2 .hero-pick-btn'));
+        btns.forEach(b => b.classList.remove('selected'));
+        const selectedBtn = document.getElementById(btnId);
+        selectedBtn.classList.add('selected');
+        selectedBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }
+
+  function setPlayMode(mode) {
+    selectedPlayMode = mode;
+    const btns = Array.from(document.querySelectorAll('.play-mode-btn'));
+    paint(btns, document.getElementById('btn-mode-' + mode), 'c-amber');
+
+    if(mode === 'duel') {
+        document.getElementById('label-hero-p1').innerText = 'PILIH KSATRIA PEMAIN 1 (Geser):';
+        document.getElementById('box-hero-p2').classList.remove('hidden');
+    } else {
+        document.getElementById('label-hero-p1').innerText = 'PILIH KSATRIA KAMU (Geser):';
+        document.getElementById('box-hero-p2').classList.add('hidden');
+    }
+  }
+
+  function setMode(mode) {
+    selectedMode = mode;
+    const btns = Array.from(document.querySelectorAll('.mode-btn'));
+    const map = { 'all': 'btn-all', '+': 'btn-add', '-': 'btn-sub', '×': 'btn-mul', '÷': 'btn-div' };
+    paint(btns, document.getElementById(map[mode]), 'c-amber');
+  }
+
+  function showStartScreen() {
+    hideAllHeroInfo();
+    document.getElementById('main-tabs').classList.remove('hidden');
+    document.getElementById('screen-start').classList.remove('hidden');
+    document.getElementById('screen-game').classList.add('hidden');
+    document.getElementById('screen-result').classList.add('hidden');
+    
+    document.getElementById('screen-game-duel').classList.add('hidden');
+    document.getElementById('screen-game-duel').classList.remove('flex');
+    document.getElementById('final-score').parentElement.parentElement.classList.remove('hidden');
+    document.getElementById('result-title').innerText = 'SELESAI!';
+  }
+
+  function showHomePopup() {
+    playSound('pop');
+    const modal = document.getElementById('home-modal');
+    const content = document.getElementById('home-modal-content');
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      modal.classList.remove('opacity-0');
+      content.classList.remove('scale-90');
+      content.classList.add('scale-100');
+    });
+  }
+
+  function closeHomePopup() {
+    playSound('pop');
+    const modal = document.getElementById('home-modal');
+    const content = document.getElementById('home-modal-content');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-90');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+  }
+
+  function confirmGoHome() {
+    closeHomePopup();
+    setTimeout(() => showStartScreen(), 250);
+  }
+
+  function startGame() {
+    score = 0; combo = 0; monsterKills = 0; heroHp = 100;
+    soloHero = heroIdx(selectedHero);
+    hideAllHeroInfo();
+    document.getElementById('main-tabs').classList.toggle('hidden', selectedPlayMode !== 'duel');
+    document.getElementById('screen-start').classList.add('hidden');
+    document.getElementById('screen-result').classList.add('hidden');
+    
+    if (selectedPlayMode === 'duel') {
+        p1Hp = 100; p2Hp = 100; duelAnswered = false;
+        duelHero = { p1: heroIdx(selectedHero), p2: heroIdx(selectedHeroP2) };
+        duelCombo = { p1: 0, p2: 0 };
+        duelSt = { p1: { firstUsed: false, shieldUsed: false }, p2: { firstUsed: false, shieldUsed: false } };
+        document.getElementById('screen-game-duel').classList.remove('hidden');
+        document.getElementById('screen-game-duel').classList.add('flex');
+
+        // Hero tegak di kiri atas masing-masing sisi layar pemain
+        ['p1', 'p2'].forEach((p, n) => {
+            const h = HEROES[duelHero[p]];
+            document.getElementById('duel-spr-' + p).innerHTML = `<img src="${p === 'p1' ? selectedHero : selectedHeroP2}" alt="${h.name}">`;
+            document.getElementById('duel-name-' + p).innerText = `PEMAIN ${n + 1} • ${h.name}`;
+            document.getElementById('duel-combo-' + p).innerText = '0';
+        });
+
+        updateDuelHpBars();
+        nextDuelQuestion();
+    } else {
+        document.getElementById('ui-score').innerText = score;
+        document.getElementById('ui-combo').innerText = '0x';
+        document.getElementById('hero-sprite').innerHTML = `<img src="${selectedHero}" alt="Hero">`; 
+        document.getElementById('screen-game').classList.remove('hidden');
+        spawnMonster();
+        nextQuestion();
+    }
+  }
+
+  // ===== Callout info hero saat battle (ketuk hero) =====
+  const infoTimers = {};
+  function hideAllHeroInfo() {
+    document.querySelectorAll('.hero-info').forEach(b => b.classList.add('hidden'));
+  }
+  function toggleHeroInfo(boxId, idx) {
+    const box = document.getElementById(boxId);
+    const wasOpen = !box.classList.contains('hidden');
+    clearTimeout(infoTimers[boxId]);
+    if (wasOpen) { box.classList.add('hidden'); return; }
+    playSound('pop');
+    const h = HEROES[idx];
+    box.innerHTML = `<div class="font-black text-amber-300 text-sm uppercase">${h.name}</div>
+      <div class="font-black text-xs mt-0.5">⚔️ ATK ${h.atk} &nbsp; 🛡️ DEF ${h.def}</div>
+      <div class="font-black text-xs text-amber-200 mt-1">✨ ${h.skill}</div>
+      <div class="font-semibold text-[11px] text-slate-200 leading-snug">${h.desc}</div>`;
+    box.classList.remove('hidden');
+    infoTimers[boxId] = setTimeout(() => box.classList.add('hidden'), 5000);
+  }
+
+  let soloHero = 0;
+  let soloSt = { firstUsed: false, shieldUsed: false };
+  let duelHero = { p1: 0, p2: 1 };
+  let duelCombo = { p1: 0, p2: 0 };
+  let duelSt = { p1: {}, p2: {} };
+
+  function spawnMonster() {
+    monsterHp = 100;
+    soloSt = { firstUsed: false, shieldUsed: false }; // skill "sekali per pertarungan" di-reset tiap monster baru
+
+    // Mode Solo murni, memanggil monster acak
+    const randomMonster = monstersList[Math.floor(Math.random() * monstersList.length)];
+    document.getElementById('monster-sprite').innerHTML = `<img src="${randomMonster}" alt="Monster">`;
+    document.getElementById('monster-name').innerText = `Lv ${monsterKills + 1}`;
+    
+    updateHpBars();
+  }
+
+  function updateHpBars() {
+    document.getElementById('hero-hp').style.width = `${Math.max(0, heroHp)}%`;
+    document.getElementById('monster-hp').style.width = `${Math.max(0, monsterHp)}%`;
+  }
+
+  function generateMathProblem() {
+    const ops = selectedMode === 'all' ? ['+', '-', '×', '÷'] : [selectedMode];
+    const op = ops[Math.floor(Math.random() * ops.length)];
+    let num1, num2, answer;
+    
+    // Kurva Kesulitan Dinamis berdasarkan level monster (monsterKills)
+    const levelMult = Math.floor(monsterKills / 2) + 1; 
+
+    if (op === '+') {
+      num1 = Math.floor(Math.random() * (10 * levelMult)) + (2 * levelMult);
+      num2 = Math.floor(Math.random() * (10 * levelMult)) + (2 * levelMult);
+      answer = num1 + num2;
+    } else if (op === '-') {
+      answer = Math.floor(Math.random() * (10 * levelMult)) + (2 * levelMult);
+      num2 = Math.floor(Math.random() * (8 * levelMult)) + (2 * levelMult);
+      num1 = answer + num2;
+    } else if (op === '×') {
+      num1 = Math.floor(Math.random() * (3 + levelMult)) + 2;
+      num2 = Math.floor(Math.random() * (3 + levelMult)) + 2;
+      answer = num1 * num2;
+    } else {
+      num2 = Math.floor(Math.random() * (3 + levelMult)) + 2;
+      answer = Math.floor(Math.random() * (3 + levelMult)) + 2;
+      num1 = num2 * answer;
+    }
+    
+    const choices = new Set([answer]);
+    while (choices.size < 4) {
+      const offset = (Math.floor(Math.random() * 4) + 1) * (Math.random() < 0.5 ? 1 : -1);
+      const w = answer + offset;
+      if (w >= 0) choices.add(w);
+    }
+    return { text: `${num1} ${op} ${num2} = ?`, answer, options: Array.from(choices).sort(() => Math.random() - 0.5) };
+  }
+
+  function nextQuestion() {
+    isProcessingAnswer = false;
+    currentQuestion = generateMathProblem();
+    document.getElementById('question-text').innerText = currentQuestion.text;
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    currentQuestion.options.forEach((opt, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'b3 c-slate text-3xl py-4 opt-btn';
+      btn.id = `opt-${index}`;
+      btn.innerText = opt;
+      btn.onclick = () => handleAnswer(opt, btn.id);
+      container.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(selectedVal, btnId) {
+    if (isProcessingAnswer) return;
+    isProcessingAnswer = true;
+    
+    // Matikan semua tombol sementara
+    const allBtns = document.querySelectorAll('.opt-btn');
+    allBtns.forEach(b => b.disabled = true);
+
+    const isCorrect = (selectedVal === currentQuestion.answer);
+    const selectedBtn = document.getElementById(btnId);
+
+    if (isCorrect) {
+      playSound('hit');
+      selectedBtn.classList.replace('c-slate', 'c-correct');
+      combo++;
+      score += 100 + combo * 20;
+      const atk = calcAttack(soloHero, combo, soloSt, 25, 5, null);
+      const dmg = atk.dmg;
+      monsterHp -= dmg;
+      if (atk.heal > 0) heroHp = Math.min(100, heroHp + atk.heal);
+      showFloatingText(`-${dmg}`, 'text-emerald-300');
+      if (atk.tags.length) setTimeout(() => showFloatingText(atk.tags[0], 'text-amber-300'), 250);
+      if (atk.heal > 0) setTimeout(() => showFloatingText(`+${atk.heal} ❤️`, 'text-emerald-300'), 500);
+      animateSprite('hero-sprite', 'lunge');
+      soloShoot('hero-sprite', 'monster-sprite', false);
+      setTimeout(() => animateSprite('monster-sprite', 'shake'), 300);
+      
+      document.getElementById('ui-score').innerText = score;
+      document.getElementById('ui-combo').innerText = `${combo}x`;
+      updateHpBars();
+
+      if (monsterHp <= 0) {
+        monsterKills++;
+        playSound('win');
+        setTimeout(() => { spawnMonster(); nextQuestion(); }, 600);
+      } else {
+        setTimeout(nextQuestion, 400); // Lanjut cepat jika benar
+      }
+    } else {
+      playSound('wrong');
+      selectedBtn.classList.replace('c-slate', 'c-wrong');
+      
+      // Temukan dan sorot jawaban yang benar (Umpan Balik Edukatif)
+      allBtns.forEach(b => {
+        if (parseInt(b.innerText) === currentQuestion.answer) {
+          b.classList.replace('c-slate', 'c-correct');
+        }
+      });
+
+      combo = 0;
+      const wr = calcWrong(soloHero, soloSt, 15);
+      heroHp -= wr.dmg;
+      showFloatingText(wr.dmg > 0 ? `-${wr.dmg} ❤️` : '0 ❤️', 'text-rose-400');
+      if (wr.tag) setTimeout(() => showFloatingText(wr.tag, 'text-amber-300'), 250);
+      animateSprite('monster-sprite', 'lunge');
+      soloShoot('monster-sprite', 'hero-sprite', true);
+      setTimeout(() => animateSprite('hero-sprite', 'shake'), 300);
+      
+      document.getElementById('ui-combo').innerText = `${combo}x`;
+      updateHpBars();
+
+      if (heroHp <= 0) { 
+        setTimeout(endGame, 1000); 
+      } else {
+        setTimeout(nextQuestion, 1500); // Jeda lebih lama agar pemain bisa melihat jawaban benar
+      }
+    }
+  }
+
+  // Bola energi meluncur dari penyerang ke target di arena Solo (sama seperti efek mode Duel)
+  function soloShoot(fromId, toId, fromEnemy) {
+    const arena = document.querySelector('.arena');
+    if (!arena) return;
+    const r = arena.getBoundingClientRect();
+    const a = document.getElementById(fromId).getBoundingClientRect();
+    const b = document.getElementById(toId).getBoundingClientRect();
+    const x1 = a.left + a.width / 2 - r.left, y1 = a.top + a.height / 2 - r.top;
+    const x2 = b.left + b.width / 2 - r.left;
+    const orb = document.createElement('div');
+    orb.className = 'solo-orb' + (fromEnemy ? ' enemy' : '');
+    orb.style.left = (x1 - 13) + 'px';
+    orb.style.top = (y1 - 13) + 'px';
+    orb.style.setProperty('--dx', (x2 - x1) + 'px');
+    arena.appendChild(orb);
+    setTimeout(() => orb.remove(), 600);
+  }
+
+  function animateSprite(id, className) {
+    const el = document.getElementById(id);
+    el.classList.add(className);
+    setTimeout(() => el.classList.remove(className), 300);
+  }
+
+  function showFloatingText(txt, colorClass) {
+    const container = document.getElementById('floating-damage');
+    const el = document.createElement('div');
+    el.className = `absolute dmg-float font-black ${colorClass}`;
+    el.innerText = txt;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 800);
+  }
+
+  function endGame() {
+    document.getElementById('main-tabs').classList.remove('hidden');
+    document.getElementById('screen-game').classList.add('hidden');
+    document.getElementById('screen-result').classList.remove('hidden');
+    document.getElementById('final-score').innerText = score;
+    document.getElementById('final-kills').innerText = monsterKills;
+  }
+
+  // ===== Logika Pertarungan Duel (Split Screen) =====
+  let p1Hp = 100, p2Hp = 100;
+  let duelQuestion = null;
+  let duelAnswered = false;
+
+  function updateDuelHpBars() {
+      document.getElementById('duel-hp-p1').style.width = `${Math.max(0, p1Hp)}%`;
+      document.getElementById('duel-hp-p2').style.width = `${Math.max(0, p2Hp)}%`;
+  }
+  
+  function nextDuelQuestion() {
+      duelAnswered = false;
+      // Tingkat kesulitan acak untuk Duel
+      const ops = selectedMode === 'all' ? ['+', '-', '×', '÷'] : [selectedMode];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      let num1, num2, answer;
+      
+      if (op === '+') {
+        num1 = Math.floor(Math.random() * 40) + 10; num2 = Math.floor(Math.random() * 40) + 10; answer = num1 + num2;
+      } else if (op === '-') {
+        answer = Math.floor(Math.random() * 40) + 10; num2 = Math.floor(Math.random() * 30) + 10; num1 = answer + num2;
+      } else if (op === '×') {
+        num1 = Math.floor(Math.random() * 9) + 2; num2 = Math.floor(Math.random() * 9) + 2; answer = num1 * num2;
+      } else {
+        num2 = Math.floor(Math.random() * 9) + 2; answer = Math.floor(Math.random() * 9) + 2; num1 = num2 * answer;
+      }
+      
+      const choices = new Set([answer]);
+      while (choices.size < 4) {
+        const w = answer + ((Math.floor(Math.random() * 5) + 1) * (Math.random() < 0.5 ? 1 : -1));
+        if (w >= 0) choices.add(w);
+      }
+      duelQuestion = { text: `${num1} ${op} ${num2} = ?`, answer: answer, options: Array.from(choices).sort(() => Math.random() - 0.5) };
+      
+      document.getElementById('duel-q-p1').innerText = duelQuestion.text;
+      document.getElementById('duel-q-p2').innerText = duelQuestion.text;
+      
+      const c1 = document.getElementById('duel-opts-p1');
+      const c2 = document.getElementById('duel-opts-p2');
+      c1.innerHTML = ''; c2.innerHTML = '';
+      
+      duelQuestion.options.forEach((opt, idx) => {
+          const b1 = document.createElement('button');
+          b1.className = 'b3 c-slate text-2xl sm:text-4xl py-2.5 !mb-0 opt-btn-duel';
+          b1.innerText = opt;
+          b1.onclick = () => handleDuelAnswer('p1', opt, b1);
+          c1.appendChild(b1);
+          
+          const b2 = document.createElement('button');
+          b2.className = 'b3 c-slate text-2xl sm:text-4xl py-2.5 !mb-0 opt-btn-duel';
+          b2.innerText = opt;
+          b2.onclick = () => handleDuelAnswer('p2', opt, b2);
+          c2.appendChild(b2);
+      });
+  }
+  
+  function handleDuelAnswer(player, val, btn) {
+      if (duelAnswered) return; // Kunci jika ada yang lebih dulu benar
+      
+      if (val === duelQuestion.answer) {
+          duelAnswered = true; 
+          playSound('hit');
+          btn.classList.replace('c-slate', 'c-correct');
+          
+          // Tampilkan jawaban benar ke semua pemain
+          document.querySelectorAll('.opt-btn-duel').forEach(b => {
+              b.disabled = true;
+              if(parseInt(b.innerText) === duelQuestion.answer) b.classList.replace('c-slate', 'c-correct');
+          });
+          
+          const foe = player === 'p1' ? 'p2' : 'p1';
+          duelCombo[player]++;
+          const atk = calcAttack(duelHero[player], duelCombo[player], duelSt[player], 25, 2, duelHero[foe]);
+          if (player === 'p1') p2Hp -= atk.dmg; else p1Hp -= atk.dmg;
+          if (atk.heal > 0) {
+              if (player === 'p1') p1Hp = Math.min(100, p1Hp + atk.heal);
+              else p2Hp = Math.min(100, p2Hp + atk.heal);
+          }
+          document.getElementById('duel-combo-' + player).innerText = duelCombo[player];
+          document.getElementById('duel-combo-' + foe).innerText = duelCombo[foe];
+
+          // Serangan selalu mengarah ke ATAS menurut layar masing-masing pemain
+          duelAttackAnim(player);
+          setTimeout(() => duelHitAnim(foe), 350);
+          showFloatingTextDuel(foe, `-${atk.dmg}`, 'text-rose-400');
+          if (atk.tags.length) showFloatingTextDuel(player, atk.tags[0], 'text-amber-300');
+          else if (atk.heal > 0) showFloatingTextDuel(player, `+${atk.heal} ❤️`, 'text-emerald-300');
+
+          updateDuelHpBars();
+          
+          if (p1Hp <= 0 || p2Hp <= 0) {
+              setTimeout(() => endDuel(player), 1000);
+          } else {
+              setTimeout(nextDuelQuestion, 1200);
+          }
+      } else {
+          playSound('wrong');
+          btn.classList.replace('c-slate', 'c-wrong');
+          btn.disabled = true; 
+          
+          // Hukuman HP jika salah jawab
+          duelCombo[player] = 0;
+          document.getElementById('duel-combo-' + player).innerText = '0';
+          const wr = calcWrong(duelHero[player], duelSt[player], 5);
+          if (player === 'p1') p1Hp -= wr.dmg; else p2Hp -= wr.dmg;
+          duelHitAnim(player);
+          showFloatingTextDuel(player, wr.dmg > 0 ? `-${wr.dmg}` : '0', 'text-rose-400');
+          if (wr.tag) setTimeout(() => showFloatingTextDuel(player, wr.tag, 'text-amber-300'), 250);
+          updateDuelHpBars();
+          
+          if (p1Hp <= 0) setTimeout(() => endDuel('p2'), 500);
+          else if (p2Hp <= 0) setTimeout(() => endDuel('p1'), 500);
+      }
+  }
+
+  // Teks melayang tepat di hero pemain yang bersangkutan (tegak menurut layarnya)
+  function showFloatingTextDuel(player, txt, color) {
+      const container = document.getElementById('duel-dmg-' + player);
+      const el = document.createElement('div');
+      el.className = `absolute dmg-float font-black text-center leading-tight ${color}`;
+      el.style.fontSize = txt.length > 6 ? '13px' : '26px';
+      el.style.width = '150px';
+      el.innerText = txt;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 800);
+  }
+
+  // Hero maju ke atas + bola energi meluncur ke atas (menuju lawan di tengah layar)
+  function duelAttackAnim(player) {
+      const half = document.getElementById('duel-half-' + player);
+      const wrap = document.getElementById('duel-spr-' + player).parentElement;
+      const hero = document.getElementById('duel-spr-' + player);
+      half.style.zIndex = 30;
+      hero.classList.remove('atk-up'); void hero.offsetWidth; hero.classList.add('atk-up');
+      const orb = document.createElement('div');
+      orb.className = 'duel-orb';
+      orb.style.setProperty('--dist', Math.round(half.offsetHeight * 0.95) + 'px');
+      wrap.appendChild(orb);
+      setTimeout(() => { orb.remove(); hero.classList.remove('atk-up'); half.style.zIndex = ''; }, 600);
+  }
+  function duelHitAnim(player) {
+      const hero = document.getElementById('duel-spr-' + player);
+      hero.classList.remove('hit-shake'); void hero.offsetWidth; hero.classList.add('hit-shake');
+      setTimeout(() => hero.classList.remove('hit-shake'), 400);
+  }
+  
+  function endDuel(winnerPlayerId) {
+      document.getElementById('screen-game-duel').classList.add('hidden');
+      document.getElementById('screen-game-duel').classList.remove('flex');
+      
+      document.getElementById('screen-result').classList.remove('hidden');
+      document.getElementById('result-title').innerText = `PEMAIN ${winnerPlayerId === 'p1' ? '1' : '2'} (${HEROES[duelHero[winnerPlayerId]].name}) MENANG!`;
+      document.getElementById('final-score').parentElement.parentElement.classList.add('hidden'); // Sembunyikan grid skor solo
+  }
+
+  // ===== Lab Bar Model =====
+  let currentLearnTopic = 'add';
+  let currentPracticeSolution = 0;
+
+  function setLearnTopic(topic) {
+    currentLearnTopic = topic;
+    const btns = Array.from(document.querySelectorAll('.learn-topic-btn'));
+    paint(btns, document.getElementById(`learn-btn-${topic}`), 'c-indigo');
+    const l1 = document.getElementById('lbl-val1');
+    const l2 = document.getElementById('lbl-val2');
+    if (topic === 'add') { l1.innerText = '🟦 A'; l2.innerText = '🟧 B'; }
+    else if (topic === 'sub') { l1.innerText = '📏 Total'; l2.innerText = '✂️ B'; }
+    else if (topic === 'mul') { l1.innerText = '📦 ×'; l2.innerText = '🔢 isi'; }
+    else { l1.innerText = '📏 Total'; l2.innerText = '📦 ÷'; }
+    renderBarModel();
+    generatePracticeQuestion();
+  }
+
+  function loadLearnPreset(n) {
+    const v1 = document.getElementById('input-val1');
+    const v2 = document.getElementById('input-val2');
+    const sets = {
+      add: [[35, 25], [48, 34], [15, 65]],
+      sub: [[75, 30], [100, 45], [60, 18]],
+      mul: [[4, 8], [5, 12], [6, 7]],
+      div: [[36, 4], [45, 5], [60, 6]]
+    };
+    const p = sets[currentLearnTopic][n - 1];
+    v1.value = p[0]; v2.value = p[1];
+    renderBarModel();
+    generatePracticeQuestion(); 
+  }
+
+  function renderBarModel() {
+    const val1 = Math.max(1, parseInt(document.getElementById('input-val1').value) || 1);
+    const val2 = Math.max(1, parseInt(document.getElementById('input-val2').value) || 1);
+    const canvas = document.getElementById('bar-model-canvas');
+    const previewEl = document.getElementById('equation-preview');
+    canvas.innerHTML = '';
+
+    if (currentLearnTopic === 'add') {
+      const total = val1 + val2;
+      previewEl.innerText = `${val1} + ${val2} = ${total}`;
+      canvas.innerHTML = `
+        <div class="flex w-full h-14 gap-1">
+          <div style="width:${(val1 / total) * 100}%" class="blk blk-indigo text-lg">${val1}</div>
+          <div style="width:${(val2 / total) * 100}%" class="blk blk-amber text-lg">${val2}</div>
+        </div>
+        <div class="blk blk-green h-10 text-lg w-full">${total}</div>`;
+    } else if (currentLearnTopic === 'sub') {
+      const total = Math.max(val1, val2);
+      const sub = Math.min(val1, val2);
+      const rem = total - sub;
+      previewEl.innerText = `${total} − ${sub} = ${rem}`;
+      const subPct = (sub / total) * 100;
+      const remPct = (rem / total) * 100;
+      canvas.innerHTML = `
+        <div class="blk blk-slate h-10 text-lg w-full">${total}</div>
+        <div class="flex w-full h-14 gap-1">
+          <div style="width:${subPct}%" class="blk blk-rose text-lg">${sub}</div>
+          <div style="width:${remPct}%" class="blk blk-green text-lg">${rem}</div>
+        </div>`;
+    } else if (currentLearnTopic === 'mul') {
+      const groups = Math.min(val1, 8);
+      const per = val2;
+      const total = groups * per;
+      previewEl.innerText = `${groups} × ${per} = ${total}`;
+      let blocks = '';
+      for (let i = 0; i < groups; i++) blocks += `<div class="blk blk-indigo flex-1 h-14 text-base">${per}</div>`;
+      canvas.innerHTML = `
+        <div class="flex gap-1.5 w-full">${blocks}</div>
+        <div class="blk blk-green h-10 text-lg w-full">${total}</div>`;
+    } else {
+      const total = val1;
+      const groups = Math.min(Math.max(1, val2), 8);
+      const per = Math.floor(total / groups);
+      const rest = total % groups;
+      previewEl.innerText = `${total} ÷ ${groups} = ${per}${rest > 0 ? ' r' + rest : ''}`;
+      let blocks = '';
+      for (let i = 0; i < groups; i++) blocks += `<div class="blk blk-green flex-1 h-14 text-base">${per}</div>`;
+      canvas.innerHTML = `
+        <div class="blk blk-slate h-10 text-lg w-full">${total}</div>
+        <div class="flex gap-1.5 w-full">${blocks}</div>`;
+    }
+  }
+
+  function generatePracticeQuestion() {
+    const q = document.getElementById('practice-question');
+    document.getElementById('practice-feedback').classList.add('hidden');
+    document.getElementById('practice-answer').value = '';
+    
+    const useUserInput = Math.random() > 0.5;
+    const val1 = Math.max(1, parseInt(document.getElementById('input-val1').value) || 1);
+    const val2 = Math.max(1, parseInt(document.getElementById('input-val2').value) || 1);
+
+    if (currentLearnTopic === 'add') {
+      const a = useUserInput ? val1 : Math.floor(Math.random() * 40) + 15;
+      const b = useUserInput ? val2 : Math.floor(Math.random() * 40) + 15;
+      currentPracticeSolution = a + b; q.innerText = `${a} + ${b} = ?`;
+    } else if (currentLearnTopic === 'sub') {
+      const t = useUserInput ? Math.max(val1, val2) : Math.floor(Math.random() * 60) + 40;
+      const p = useUserInput ? Math.min(val1, val2) : Math.floor(Math.random() * 30) + 10;
+      currentPracticeSolution = t - p; q.innerText = `${t} − ${p} = ?`;
+    } else if (currentLearnTopic === 'mul') {
+      const g = useUserInput ? Math.min(val1, 8) : Math.floor(Math.random() * 5) + 3;
+      const e = useUserInput ? val2 : Math.floor(Math.random() * 8) + 4;
+      currentPracticeSolution = g * e; q.innerText = `${g} × ${e} = ?`;
+    } else {
+      const g = useUserInput ? Math.min(Math.max(1, val2), 8) : Math.floor(Math.random() * 5) + 2;
+      const e = useUserInput ? Math.floor(val1 / g) : Math.floor(Math.random() * 8) + 3;
+      currentPracticeSolution = e; q.innerText = `${e * g} ÷ ${g} = ?`;
+    }
+  }
+
+  function checkPracticeAnswer() {
+    const userAns = parseInt(document.getElementById('practice-answer').value);
+    const fb = document.getElementById('practice-feedback');
+    fb.classList.remove('hidden');
+    if (userAns === currentPracticeSolution) {
+      playSound('win');
+      fb.className = 'text-center text-xl font-black text-emerald-300';
+      fb.innerText = '🎉 ✔';
+      setTimeout(generatePracticeQuestion, 1500);
+    } else {
+      playSound('wrong');
+      fb.className = 'text-center text-xl font-black text-rose-400';
+      fb.innerText = `❌ ${currentPracticeSolution}`;
+    }
+  }
+
+  // ===== Tabel =====
+  let selectedTableOp = '×';
+  let selectedTableNum = 7;
+  let hideAnswers = false;
+  let simTargetCount = 10;
+  let simQuestions = [], simCurrentIdx = 0, simCorrectCount = 0, simWrongCount = 0, simCombo = 0;
+
+  function initTablesModule() { renderNumberButtons(); renderTablesGrid(); }
+
+  function switchTableSubTab(sub) {
+    const h = document.getElementById('table-sub-hafalan');
+    const s = document.getElementById('table-sub-simulasi');
+    const bh = document.getElementById('subtab-view-table');
+    const bs = document.getElementById('subtab-sim-table');
+    if (sub === 'hafalan') {
+      h.classList.remove('hidden'); s.classList.add('hidden');
+      paint([bh, bs], bh, 'c-indigo');
+    } else {
+      s.classList.remove('hidden'); h.classList.add('hidden');
+      paint([bh, bs], bs, 'c-green');
+    }
+  }
+
+  function setTableOp(op) {
+    selectedTableOp = op;
+    const bm = document.getElementById('tbl-op-mul');
+    const bd = document.getElementById('tbl-op-div');
+    paint([bm, bd], op === '×' ? bm : bd, 'c-indigo');
+    renderTablesGrid();
+  }
+
+  function toggleHideAnswers() {
+    hideAnswers = !hideAnswers;
+    const b = document.getElementById('toggle-hide-btn');
+    b.className = b.className.replace(/\bc-\w+\b/g, '').trim() + (hideAnswers ? ' c-amber' : ' c-slate');
+    renderTablesGrid();
+  }
+
+  function setTableNum(n) { selectedTableNum = n; renderNumberButtons(); renderTablesGrid(); }
+
+  function renderNumberButtons() {
+    const c = document.getElementById('num-buttons-container');
+    c.innerHTML = '';
+    for (let i = 1; i <= 12; i++) {
+      const b = document.createElement('button');
+      b.className = 'b3 py-2 text-sm ' + (i === selectedTableNum ? 'c-amber' : 'c-slate');
+      b.innerText = i;
+      b.onclick = () => setTableNum(i);
+      c.appendChild(b);
+    }
+  }
+
+  function renderTablesGrid() {
+    const grid = document.getElementById('table-cards-grid');
+    document.getElementById('table-header-title').innerText = `${selectedTableNum} ${selectedTableOp === '×' ? '✖️' : '➗'}`;
+    grid.innerHTML = '';
+    for (let i = 1; i <= 12; i++) {
+      let expr, ans;
+      if (selectedTableOp === '×') { expr = `${i} × ${selectedTableNum}`; ans = i * selectedTableNum; }
+      else { expr = `${i * selectedTableNum} ÷ ${selectedTableNum}`; ans = i; }
+      const card = document.createElement('div');
+      card.className = 'fact';
+      card.innerHTML = `<span class="text-sm font-black text-slate-200">${expr}</span>
+        <span class="ans ${hideAnswers ? 'text-amber-300' : 'text-emerald-300'}">${hideAnswers ? '?' : ans}</span>`;
+      card.onclick = () => {
+        playSound('pop');
+        const a = card.querySelector('.ans');
+        a.innerText = ans;
+        a.className = 'ans text-emerald-300';
+      };
+      grid.appendChild(card);
+    }
+  }
+
+  // ===== Simulasi =====
+  function setSimQuestionCount(cnt) {
+    simTargetCount = cnt;
+    const btns = Array.from(document.querySelectorAll('.sim-count-btn'));
+    paint(btns, document.getElementById(`btn-count-${cnt}`), 'c-green');
+  }
+
+  function startTableSimulation() {
+    const opChoice = document.getElementById('sim-select-op').value;
+    const numChoice = parseInt(document.getElementById('sim-select-num').value);
+    simQuestions = []; simCurrentIdx = 0; simCorrectCount = 0; simWrongCount = 0; simCombo = 0;
+
+    for (let i = 0; i < simTargetCount; i++) {
+      let op = opChoice;
+      if (opChoice === 'all') op = Math.random() < 0.5 ? '×' : '÷';
+      let target = numChoice;
+      if (target === 0) target = Math.floor(Math.random() * 12) + 1;
+      const factor = Math.floor(Math.random() * 12) + 1;
+      let qText, ans;
+      if (op === '×') { qText = `${factor} × ${target} = ?`; ans = factor * target; }
+      else { qText = `${factor * target} ÷ ${target} = ?`; ans = factor; }
+      const choices = new Set([ans]);
+      while (choices.size < 4) {
+        const w = ans + (Math.floor(Math.random() * 5) + 1) * (Math.random() < 0.5 ? 1 : -1);
+        if (w >= 1) choices.add(w);
+      }
+      simQuestions.push({ text: qText, answer: ans, options: Array.from(choices).sort(() => Math.random() - 0.5) });
+    }
+
+    document.getElementById('sim-setup-card').classList.add('hidden');
+    document.getElementById('sim-result-card').classList.add('hidden');
+    document.getElementById('sim-active-card').classList.remove('hidden');
+    renderSimQuestion();
+  }
+
+  function renderSimQuestion() {
+    if (simCurrentIdx >= simQuestions.length) { endSimSimulation(); return; }
+    const q = simQuestions[simCurrentIdx];
+    document.getElementById('sim-progress-text').innerText = `${simCurrentIdx + 1} / ${simQuestions.length}`;
+    const acc = simCurrentIdx === 0 ? 100 : Math.round((simCorrectCount / simCurrentIdx) * 100);
+    document.getElementById('sim-accuracy-text').innerText = `${acc}%`;
+    document.getElementById('sim-combo-text').innerText = `${simCombo}x`;
+    document.getElementById('sim-flashcard-question').innerText = q.text;
+    const grid = document.getElementById('sim-options-grid');
+    grid.innerHTML = '';
+    q.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'b3 c-slate text-3xl py-4';
+      btn.innerText = opt;
+      btn.onclick = () => handleSimAnswer(opt);
+      grid.appendChild(btn);
+    });
+  }
+
+  function handleSimAnswer(val) {
+    const q = simQuestions[simCurrentIdx];
+    if (val === q.answer) { playSound('hit'); simCorrectCount++; simCombo++; }
+    else { playSound('wrong'); simWrongCount++; simCombo = 0; }
+    simCurrentIdx++;
+    renderSimQuestion();
+  }
+
+  function endSimSimulation() {
+    document.getElementById('sim-active-card').classList.add('hidden');
+    document.getElementById('sim-result-card').classList.remove('hidden');
+    const acc = Math.round((simCorrectCount / simTargetCount) * 100);
+    document.getElementById('sim-final-correct').innerText = simCorrectCount;
+    document.getElementById('sim-final-wrong').innerText = simWrongCount;
+    document.getElementById('sim-final-accuracy').innerText = `${acc}%`;
+    const stars = document.getElementById('sim-result-stars');
+    const title = document.getElementById('sim-result-title');
+    if (acc === 100) { playSound('win'); stars.innerText = '⭐⭐⭐'; title.innerText = 'SEMPURNA!'; }
+    else if (acc >= 70) { playSound('win'); stars.innerText = '⭐⭐'; title.innerText = 'HEBAT!'; }
+    else { playSound('wrong'); stars.innerText = '⭐'; title.innerText = 'SEMANGAT!'; }
+  }
+
+  function resetSimSetup() {
+    document.getElementById('sim-setup-card').classList.remove('hidden');
+    document.getElementById('sim-active-card').classList.add('hidden');
+    document.getElementById('sim-result-card').classList.add('hidden');
+  }
+
+  window.onload = function () {
+    renderBarModel();
+    initTablesModule();
+    renderHeroSelection();
+  };
+</script>
+</body>
+</html>
